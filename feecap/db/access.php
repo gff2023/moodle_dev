@@ -26,4 +26,10 @@ $capabilities = [
             'editingteacher' => CAP_ALLOW,
         ],
     ],
+    'enrol/feecap:unenrolself' => [
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_COURSE,
+        'archetypes' => [
+        ],
+    ],
 ];
