@@ -25,54 +25,60 @@
 defined('MOODLE_INTERNAL') || die();
 
 if ($ADMIN->fulltree) {
-    $plugin = enrol_get_plugin('feecap');
 
-    // Default cost.
-    $settings->add(new admin_setting_configtext(
-        'enrol_feecap/cost',
-        get_string('cost', 'enrol_feecap'),
-        get_string('configcost', 'enrol_feecap'),
-        0,
-        PARAM_FLOAT,
-        10
-    ));
+    $currencies = enrol_get_plugin('feecap')->get_possible_currencies();
 
-    // Default currency.
-    $currencies = $plugin->get_possible_currencies();
+    if (empty($currencies)) {
+        $notify = new \core\output\notification(
+            get_string('nocurrencysupported', 'core_payment'),
+            \core\output\notification::NOTIFY_WARNING
+        );
+        $settings->add(new admin_setting_heading('enrol_feecap_nocurrency', '', $OUTPUT->render($notify)));
+    }
+
+    $settings->add(new admin_setting_heading('enrol_feecap_settings', '', get_string('pluginname_desc', 'enrol_feecap')));
+
+    // Note: let's reuse the ext sync constants and strings here, internally it is very similar,
+    // it describes what should happen when users are not supposed to be enrolled any more.
+    $options = array(
+        ENROL_EXT_REMOVED_KEEP           => get_string('extremovedkeep', 'enrol'),
+        ENROL_EXT_REMOVED_SUSPENDNOROLES => get_string('extremovedsuspendnoroles', 'enrol'),
+        ENROL_EXT_REMOVED_UNENROL        => get_string('extremovedunenrol', 'enrol'),
+    );
     $settings->add(new admin_setting_configselect(
-        'enrol_feecap/currency',
-        get_string('currency', 'enrol_feecap'),
-        get_string('configcurrency', 'enrol_feecap'),
-        'USD',
-        $currencies
-    ));
+        'enrol_feecap/expiredaction',
+        get_string('expiredaction', 'enrol_feecap'),
+        get_string('expiredaction_help', 'enrol_feecap'),
+        ENROL_EXT_REMOVED_SUSPENDNOROLES,
+        $options));
 
-    // Default role.
-    $roles = get_default_enrol_roles(context_system::instance());
-    $settings->add(new admin_setting_configselect(
-        'enrol_feecap/roleid',
-        get_string('defaultrole', 'role'),
-        get_string('defaultrole_desc', 'enrol'),
-        key(array_slice($roles, 0, 1, true)), // First role (e.g., Student).
-        $roles
-    ));
+    $settings->add(new admin_setting_heading('enrol_feecap_defaults',
+        get_string('enrolinstancedefaults', 'admin'), get_string('enrolinstancedefaults_desc', 'admin')));
 
-    // Default status.
-    $options = [ENROL_INSTANCE_ENABLED => get_string('yes'), ENROL_INSTANCE_DISABLED => get_string('no')];
-    $settings->add(new admin_setting_configselect(
-        'enrol_feecap/status',
-        get_string('status', 'enrol_feecap'),
-        get_string('status_desc', 'enrol_feecap'),
-        ENROL_INSTANCE_DISABLED,
-        $options
-    ));
+    $options = array(ENROL_INSTANCE_ENABLED  => get_string('yes'),
+                     ENROL_INSTANCE_DISABLED => get_string('no'));
+    $settings->add(new admin_setting_configselect('enrol_feecap/status',
+        get_string('status', 'enrol_feecap'), get_string('status_desc', 'enrol_feecap'), ENROL_INSTANCE_DISABLED, $options));
+
+    if (!empty($currencies)) {
+        $settings->add(new admin_setting_configtext('enrol_feecap/cost', get_string('cost', 'enrol_feecap'), '', 0, PARAM_FLOAT, 4));
+        $settings->add(new admin_setting_configselect('enrol_feecap/currency', get_string('currency', 'enrol_feecap'), '', 'USD',
+            $currencies));
+    }
+
+    if (!during_initial_install()) {
+        $options = get_default_enrol_roles(context_system::instance());
+        $student = get_archetype_roles('student');
+        $student = reset($student);
+        $settings->add(new admin_setting_configselect('enrol_feecap/roleid',
+            get_string('defaultrole', 'enrol_feecap'), get_string('defaultrole_desc', 'enrol_feecap'), $student->id ?? null, $options));
+    }
+
+    $settings->add(new admin_setting_configduration('enrol_feecap/enrolperiod',
+        get_string('enrolperiod', 'enrol_feecap'), get_string('enrolperiod_desc', 'enrol_feecap'), 0));
 
     // Default max enrollment.
-    $settings->add(new admin_setting_configtext(
-        'enrol_feecap/maxenrolled',
-        get_string('maxenrolled', 'enrol_feecap'),
-        get_string('configmaxenrolled', 'enrol_feecap'),
-        0,
-        PARAM_INT
-    ));
+    $settings->add(new admin_setting_configtext('enrol_feecap/maxenrolled',
+        get_string('maxenrolled', 'enrol_feecap'), get_string('configmaxenrolled', 'enrol_feecap'), 0, PARAM_INT));
+    
 }
