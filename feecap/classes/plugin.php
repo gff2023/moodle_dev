@@ -86,9 +86,9 @@ class enrol_feecap_plugin extends enrol_plugin {
     public function can_enrol(stdClass $instance, $user = null) {
         global $DB;
 
-        if (!parent::can_enrol($instance, $user)) {
+        /** if (!parent::can_enrol($instance, $user)) {
             return false;
-        }
+        } */
 
         $maxlimit = $instance->customint2 ?? 0;
         if ($maxlimit == 0) {
